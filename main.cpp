@@ -113,7 +113,6 @@ TTF_Font     *menu_font = NULL;
 void check_game_over(void){
     if (player.live == false || boss.health < 1){
         state = GAME_OVER;
-        SDL_Delay(1000);
     }
 }
 
@@ -471,12 +470,32 @@ int main( int argc, char* args[] ){
             if (laser.live){
                 if( collision(player.hitbox, laser.hitbox )){
                     player.live = false;
+                    SDL_RenderCopy( renderer, menu_txtr, NULL, NULL);
+                    draw_player();
+                    draw_boss();
+                    draw_bullet();
+                    draw_laser();
+                    SDL_Delay(1000);
+                    SDL_RenderCopy( renderer, game_over_txtr, NULL, NULL);
+                    SDL_RenderPresent( renderer );
+                    SDL_Delay(1000);
                 }
             }
         }
         else if ( state == GAME_OVER ){
-            ;
+            if ( click ){
+                state = MENU;
+                click = false;
+                init_player(player_txtr);
+                init_boss(boss_txtr);
+                init_bullet(bullet_txtr);
+                init_laser(laser_txtrs);
+            }
+            else{
+                ;
+            }
         }
+
 
 
         SDL_RenderClear( renderer );
@@ -493,8 +512,9 @@ int main( int argc, char* args[] ){
             draw_bullet();
             draw_laser();
         }
-        else if ( state == GAME_OVER )
+        else if ( state == GAME_OVER ){
             SDL_RenderCopy( renderer, game_over_txtr, NULL, NULL);
+        }
         SDL_RenderPresent( renderer );
         check_game_over();
     }
