@@ -7,14 +7,14 @@
 #define PI 3.14159265358979323846264
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 600
-#define P_WIDTH 90
-#define P_HEIGHT 100
+#define P_WIDTH 80
+#define P_HEIGHT 90
 #define B_WIDTH 150
 #define B_HEIGHT 300
-#define BULLET_HEIGHT 200
-#define BULLET_WIDTH 200
-#define LASER_HEIGHT 400
-#define LASER_WIDTH 60
+#define BULLET_HEIGHT 150
+#define BULLET_WIDTH 150
+#define LASER_HEIGHT 450
+#define LASER_WIDTH 50
 #define MAX_SPRITES 8
 #define LASER_ANIMATION_LEN 2
 
@@ -38,6 +38,7 @@ void move_boss(void);
 void move_bullet(int speed);
 void move_laser(void);
 
+int player_lives = 3;
 
 enum direction_t{
     L,
@@ -156,40 +157,46 @@ void init_laser(SDL_Texture *txtr_in[]){
 }
 
 void draw_player(void){
-    if (player.live == true )
+    if ( player.live == true )
         SDL_RenderCopy(renderer, player.txtr, NULL, &player.hitbox);
 }
 
 void draw_boss(void){
-    if (boss.live == true )
+    if ( boss.live == true )
         SDL_RenderCopy(renderer, boss.txtr, NULL, &boss.hitbox);
 }
 
 void draw_bullet(void){
-    if (bullet.live == true )
+    if ( bullet.live == true )
         SDL_RenderCopy(renderer, bullet.txtr, NULL, &bullet.hitbox);
 }
 
-int animation_count = 0;
+//int animation_count = 0;
 void draw_laser(void){
-    if (laser.live == true ){
-        if (animation_count < 1000 || (animation_count > 2000 && animation_count < 3000) )
-            SDL_RenderCopy(renderer, laser.txtr[0], NULL, &laser.hitbox);
-        else
-            SDL_RenderCopy(renderer, laser.txtr[1], NULL, &laser.hitbox);
-        animation_count++;
+    if ( laser.live == true ){
+        SDL_RenderCopy(renderer, laser.txtr[0], NULL, &laser.hitbox);
+        //if (animation_count < 1000 || (animation_count > 2000 && animation_count < 3000) )
+        //else
+        //    SDL_RenderCopy(renderer, laser.txtr[1], NULL, &laser.hitbox);
+        //animation_count++;
     }
 }
 
 void move_player(void){
     if( player.direction == R && (player.hitbox.x + player.hitbox.w < SCREEN_WIDTH))
-        player.hitbox.x += 10;
+        player.hitbox.x += 8;
     else if( player.direction == L && player.hitbox.x > 0)
-        player.hitbox.x -= 10;
+        player.hitbox.x -= 8;
 }
 
-void move_boss(void){
-    boss.hitbox.x = ((rand() % (SCREEN_WIDTH - boss.hitbox.w)) + boss.hitbox.w);
+bool reverse;
+void move_boss(int time){
+    if (time % 2027 == 0)
+        reverse = !reverse;
+    if(reverse && boss.hitbox.x + boss.hitbox.w < SCREEN_WIDTH)
+        boss.hitbox.x += 10;
+    else if(player.hitbox.x > 0)
+        boss.hitbox.x -= 10;
 }
 
 bool bset = true;
@@ -236,8 +243,9 @@ int collision(SDL_Rect a, SDL_Rect b){
         return 0;
     return 1;
 }
+
 int collision_laser(SDL_Rect p, SDL_Rect l){
-    if (p.x > l.x + (l.w/3) && p.x < (l.x + l.w - (l.w/3)) )
+    if (p.x < (l.x + l.w) && p.x > (l.x - l.w) )
         return 1;
     return 0;
 }
@@ -454,8 +462,8 @@ int main( int argc, char* args[] ){
             // game logic
             time = SDL_GetTicks();
             move_player();
-            if ( time % 2027 == 0)
-                move_boss();
+            if(!laser.live)
+                move_boss(time);
             move_bullet(player.hitbox.x - player.hitbox.h/2, 1);
             if ( (time % 2023 == 0) && (time - start_time) > 2000 && !laser.live )
                 laser.live = true;
@@ -468,8 +476,8 @@ int main( int argc, char* args[] ){
                 }
             }
             if (laser.live){
-                if( collision(player.hitbox, laser.hitbox )){
-                    player.live = false;
+                if( collision_laser(player.hitbox, laser.hitbox )){
+                    player.lives -= 1;
                     SDL_RenderCopy( renderer, menu_txtr, NULL, NULL);
                     draw_player();
                     draw_boss();
@@ -481,6 +489,9 @@ int main( int argc, char* args[] ){
                     SDL_Delay(1000);
                 }
             }
+            if (player.lives == 0)
+                player.live = false;
+
         }
         else if ( state == GAME_OVER ){
             if ( click ){

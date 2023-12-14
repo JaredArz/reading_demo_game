@@ -15,7 +15,8 @@ ifeq ($(CROSSCOMPILE), yes)
 	X = .exe
     EXTLIBS += -lmingw32
 else
-	CC = g++
+	#CC = g++
+	CC = gcc
 	X  =  
 endif
 
