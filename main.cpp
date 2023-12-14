@@ -13,8 +13,8 @@
 #define B_HEIGHT 300
 #define BULLET_HEIGHT 150
 #define BULLET_WIDTH 150
-#define LASER_HEIGHT 450
-#define LASER_WIDTH 50
+#define LASER_HEIGHT 500
+#define LASER_WIDTH 100
 #define MAX_SPRITES 8
 #define LASER_ANIMATION_LEN 2
 
@@ -37,8 +37,6 @@ void move_player(void);
 void move_boss(void);
 void move_bullet(int speed);
 void move_laser(void);
-
-int player_lives = 3;
 
 enum direction_t{
     L,
@@ -111,11 +109,13 @@ SDL_Window   *window = NULL;
 SDL_Renderer *renderer = NULL;
 TTF_Font     *menu_font = NULL;
 
+/*
 void check_game_over(void){
     if (player.live == false || boss.health < 1){
         state = GAME_OVER;
     }
 }
+*/
 
 
 void init_player(SDL_Texture *txtr_in){
@@ -189,14 +189,22 @@ void move_player(void){
         player.hitbox.x -= 8;
 }
 
-bool reverse;
+static bool reverse = 1;
 void move_boss(int time){
-    if (time % 2027 == 0)
-        reverse = !reverse;
-    if(reverse && boss.hitbox.x + boss.hitbox.w < SCREEN_WIDTH)
-        boss.hitbox.x += 10;
-    else if(player.hitbox.x > 0)
-        boss.hitbox.x -= 10;
+    if (time % 100 == 0){
+        if(reverse){
+            if (boss.hitbox.x + boss.hitbox.w/2 < SCREEN_WIDTH-1)
+                boss.hitbox.x += 1;
+            else
+                reverse = 0;
+        }
+        else{
+            if(boss.hitbox.x > 0)
+                boss.hitbox.x -= 1;
+            else
+                reverse = 1;
+        }
+    }
 }
 
 bool bset = true;
@@ -226,7 +234,7 @@ void move_laser(int xpos){
         if (lticks > 4000){
             lticks = 0;
             laser.live = false;
-            animation_count = 0;
+            //animation_count = 0;
         }
         lticks++;
     }
@@ -413,6 +421,7 @@ int main( int argc, char* args[] ){
     SDL_RenderPresent( renderer );
 
 
+    int player_lives = 3;
     int start_time = SDL_GetTicks();
     srand(start_time);
     int time;
@@ -462,8 +471,8 @@ int main( int argc, char* args[] ){
             // game logic
             time = SDL_GetTicks();
             move_player();
-            if(!laser.live)
-                move_boss(time);
+            //if(!laser.live)
+            move_boss(time);
             move_bullet(player.hitbox.x - player.hitbox.h/2, 1);
             if ( (time % 2023 == 0) && (time - start_time) > 2000 && !laser.live )
                 laser.live = true;
@@ -477,23 +486,29 @@ int main( int argc, char* args[] ){
             }
             if (laser.live){
                 if( collision_laser(player.hitbox, laser.hitbox )){
-                    player.lives -= 1;
-                    SDL_RenderCopy( renderer, menu_txtr, NULL, NULL);
-                    draw_player();
-                    draw_boss();
-                    draw_bullet();
-                    draw_laser();
-                    SDL_Delay(1000);
-                    SDL_RenderCopy( renderer, game_over_txtr, NULL, NULL);
-                    SDL_RenderPresent( renderer );
-                    SDL_Delay(1000);
+                    player_lives -= 1;
+                    //SDL_RenderCopy( renderer, menu_txtr, NULL, NULL);
+                    //draw_player();
+                    //draw_boss();
+                    //draw_bullet();
+                    //draw_laser();
+                    //SDL_Delay(1000);
+                    //SDL_RenderCopy( renderer, game_over_txtr, NULL, NULL);
+                    //SDL_RenderPresent( renderer );
+                    //SDL_Delay(1000);
                 }
             }
-            if (player.lives == 0)
-                player.live = false;
+            if (player_lives == 0)
+                state = GAME_OVER;
 
+            //check_game_over();
         }
-        else if ( state == GAME_OVER ){
+
+        if (boss.health < 1)
+            state = MENU;
+
+        if ( state == GAME_OVER ){
+            SDL_Delay(300);
             if ( click ){
                 state = MENU;
                 click = false;
@@ -507,12 +522,15 @@ int main( int argc, char* args[] ){
             }
         }
 
-
-
         SDL_RenderClear( renderer );
 
         // handle rendering depending on state
         if( state == MENU ){
+            player_lives=3;
+            init_player(player_txtr);
+            init_boss(boss_txtr);
+            init_bullet(bullet_txtr);
+            init_laser(laser_txtrs);
             SDL_RenderCopy( renderer, menu_txtr, NULL, NULL);
             SDL_RenderCopy( renderer, text, NULL, &dest );
         }
@@ -527,7 +545,7 @@ int main( int argc, char* args[] ){
             SDL_RenderCopy( renderer, game_over_txtr, NULL, NULL);
         }
         SDL_RenderPresent( renderer );
-        check_game_over();
+        //check_game_over();
     }
 
     sdl_cleanup();
